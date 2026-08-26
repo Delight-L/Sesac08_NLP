@@ -4,8 +4,8 @@ import torch.nn as nn
 PAD_IDX = 0
 
 class SpamRNN(nn.Module):
-    def __init__(self, vocab_size, embed_size=64, hidden_size=128, 
-                 num_layers=3, 
+    def __init__(self, vocab_size, embed_size=128, hidden_size=256, 
+                 num_layers=5, 
                  dropout=0.3, num_classes=2):
         super().__init__()
         #nn.Embedding(input개수, output개수) -> 
@@ -33,3 +33,19 @@ class SpamRNN(nn.Module):
         last = out[:, -1, :]
         result = self.fc(self.dropout(last))
         return result
+
+
+#뉴 클래스 만들기! -> LSTM
+class SpamLSTM(nn.Module):
+    #https://docs.pytorch.org/docs/2.13/generated/torch.nn.LSTM.html
+    def __init__(self):
+        self.embedding 
+        self.lstm 
+        self.dropout
+        self.fc
+
+    def forward(self, x):
+        embedding = self.embedding(x)
+        out, _ = self.lstm(embedding)
+        last = out[:, -1, :]
+        return self.fc(self.dropout(last))

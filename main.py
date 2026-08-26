@@ -204,7 +204,7 @@ if __name__ == '__main__':
     model = SpamRNN(vocab_size=vocab_size)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters())
-    num_epochs = 1
+    num_epochs = 30
 
     #훈련코드!
     #2.train에 입력하시오 -> criterion(크로스엔트로피손실) / 최적화 Adam
