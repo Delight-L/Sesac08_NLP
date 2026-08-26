@@ -109,8 +109,8 @@ class SpamDataset(Dataset):
 if __name__ == '__main__':
     train_loader, valid_loader, test_loader = preprocessing()
 
-    x_train, y_train = next(iter(train_loader))
-    print(x_train.shape)
-    print(y_train.shape)
-    print(x_train[0])
-    print(y_train[0])
+    # x_train, y_train = next(iter(train_loader))
+    # print(x_train.shape)
+    # print(y_train.shape)
+    # print(x_train[0])
+    # print(y_train[0])
