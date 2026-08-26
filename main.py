@@ -10,6 +10,8 @@
 import os, re, urllib.request, zipfile
 import pandas as pd  
 
+MAX_LEN = 50
+
 def load_data(data_path='SMSSpamCollection', batch_size=32):
     #os.path.exists(경로) : '경로'가 존재하는가?
     if not os.path.exists(data_path):
@@ -54,21 +56,61 @@ def preprocessing(data_path='SMSSpamCollection'):
     vocab = build_vocab(df['text'])
     #print(vocab)
 
+    dataset = SpamDataset(df, vocab=vocab, max_len=MAX_LEN)
+    n_total = len(dataset)
+    n_train = int(n_total * 0.7)
+    n_valid = int(n_total * 0.15)
+    n_test = n_total - n_train - n_valid
+
+    train_set, valid_set, test_set = random_split(dataset, [n_train, n_valid, n_test])
+
+    batch_size=32
+    train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
+    valid_loader = DataLoader(valid_set, batch_size=batch_size)
+    test_loader = DataLoader(test_set, batch_size=batch_size)
+    return train_loader, valid_loader, test_loader
+
+
 #자연어 모델을 위한 커스텀 데이터셋 만들기
+import torch
 from torch.utils.data import DataLoader, Dataset, random_split
 class SpamDataset(Dataset):
     #데이터셋이 필수적으로 가져야할 3가지 함수
-    def __init__(self, df, vocab):
+    def __init__(self, df, vocab, max_len):
         #데이터 + 라벨
+        #text의 vocab 기반 정수 전환
         self.texts = df['text'].tolist()
-        self.labels = df['label'].tolist()
+        #labels의 tensor 전환 필요 / torch.long 은 int64
+        self.labels = torch.tensor(df['label'].tolist(), 
+                                   dtype=torch.long)
         self.vocab = vocab
+        self.max_len = max_len
+
+    #MAX_LEN = 50
+    #{'<PAD>': 0, '<UNK>': 1, 'go': 2, 'until': 3, 'point': 4
+    #Go until jurong point
+    def _text_to_tensor(self, text, vocab, max_len=MAX_LEN):
+        sample = [vocab.get(t, 1) for t in tokenize(text)]
+
+        if len(sample) >= max_len:
+            sample = sample[:max_len]
+        else:
+            sample += [0] * (max_len - len(sample))
+        return torch.tensor(sample, dtype=torch.long)
 
     def __len__(self):
+        return len(self.labels)
 
     def __getitem__(self, index):
-        
-
+        text = self._text_to_tensor(self.texts[index], self.vocab, self.max_len)
+        label = self.labels[index]
+        return text, label
 
 if __name__ == '__main__':
-    preprocessing()
+    train_loader, valid_loader, test_loader = preprocessing()
+
+    x_train, y_train = next(iter(train_loader))
+    print(x_train.shape)
+    print(y_train.shape)
+    print(x_train[0])
+    print(y_train[0])
