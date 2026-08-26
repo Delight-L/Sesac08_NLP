@@ -4,7 +4,9 @@ import torch.nn as nn
 PAD_IDX = 0
 
 class SpamRNN(nn.Module):
-    def __init__(self):
+    def __init__(self, vocab_size, embed_size=64, hidden_size=128, 
+                 num_layers=3, 
+                 dropout=0.3, num_classes=2):
         #nn.Embedding(input개수, output개수) -> 
         #input -> vocab_size => N개의 단어들을 가지고 있습니다~
         #embedding -> 하나의 단어를 '몇 차원'으로 표시할 것인지
@@ -26,5 +28,7 @@ class SpamRNN(nn.Module):
     def forward(self, x):
         embed = self.embedding(x)
         out, _ =self.rnn(embed)
+        #이 때, out은 (batch, seq, hidden)으로 구성되어 있음
         last = out[:, -1, :]
-        result = self.fc(last)
+        result = self.fc(self.dropout(last))
+        return result

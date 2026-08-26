@@ -106,6 +106,70 @@ class SpamDataset(Dataset):
         label = self.labels[index]
         return text, label
 
+def train(model, train_loader, valid_loader, criterion, optimizer,
+          num_epochs, device, model_name='Model'):
+    model.to(device)
+    history = {'train_loss': [], 'train_acc': [], 'valid_acc': []}
+    best_valid_acc = 0.0
+
+    for epoch in range(num_epochs):
+        model.train()
+        running_loss, correct, total = 0.0, 0, 0
+
+        for X_batch, y_batch in train_loader:
+            X_batch, y_batch = X_batch.to(device), y_batch.to(device)
+
+            output = model(X_batch)
+            loss   = criterion(output, y_batch)
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            running_loss += loss.item()
+            _, pred = torch.max(output, 1)
+            correct += (pred == y_batch).sum().item()
+            total   += y_batch.size(0)
+
+        train_loss = running_loss / len(train_loader)
+        train_acc  = correct / total * 100
+
+        model.eval()
+        v_correct, v_total = 0, 0
+        with torch.no_grad():
+            for X_batch, y_batch in valid_loader:
+                X_batch, y_batch = X_batch.to(device), y_batch.to(device)
+                _, pred = torch.max(model(X_batch), 1)
+                v_correct += (pred == y_batch).sum().item()
+                v_total   += y_batch.size(0)
+        valid_acc = v_correct / v_total * 100
+
+        history['train_loss'].append(train_loss)
+        history['train_acc'].append(train_acc)
+        history['valid_acc'].append(valid_acc)
+
+        if valid_acc > best_valid_acc:
+            best_valid_acc = valid_acc
+
+        if (epoch + 1) % 2 == 0:
+            print(f'[{model_name}] Epoch {epoch+1:2d}/{num_epochs} | '
+                  f'loss: {train_loss:.4f} | train: {train_acc:.2f}% | valid: {valid_acc:.2f}%')
+
+    print(f'[{model_name}] 최고 검증 정확도: {best_valid_acc:.2f}%\n')
+    return history
+
+def evaluate(model, test_loader, device, model_name='Model'):
+    model.eval()
+    all_preds, all_labels = [], []
+
+    with torch.no_grad():
+        for X_batch, y_batch in test_loader:
+            _, pred = torch.max(model(X_batch.to(device)), 1)
+            all_preds.extend(pred.cpu().numpy())
+            all_labels.extend(y_batch.numpy())
+
+    return all_labels, all_preds
+
 if __name__ == '__main__':
     train_loader, valid_loader, test_loader = preprocessing()
 
