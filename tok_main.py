@@ -48,7 +48,10 @@ def make_splits(length_of_df):
     return split_num[:n_train], split_num[n_train:n_train+n_valid], split_num[n_train+n_valid:]
 
 
-
+from models.rnn import SpamLSTM
+from utils.visualize import plot_comparison
+import torch.nn as nn 
+import torch.optim as optim
 
 if __name__ == '__main__':
 
@@ -65,12 +68,45 @@ if __name__ == '__main__':
     #데이터프레임 열 중 label 열을 0(정상), 1(스팸)
     df['label'] = (df['label'] == 'spam').astype(int) 
 
-    train_idx, valid_idx, test_inx = make_splits(len(df))
+    train_idx, valid_idx, test_idx = make_splits(len(df))
+
 
     #1. 전통적인 tokenizer를 거친 데이터셋을 가지고 와서 lstm으로 훈련
+    #1-1. 전통적인 tokenizer를 거친 데이터셋 로드
+    original_vocab = main.build_vocab(df)
+    original_data = main.SpamDataset(df, original_vocab, 50)
+
+    original_train = DataLoader(Subset(original_data, train_idx), batch_size=32, shuffle=True) 
+    original_valid = DataLoader(Subset(original_data, valid_idx), batch_size=32)
+    original_test = DataLoader(Subset(original_data, test_idx), batch_size=32)
+
+    #1-2. 모델생성
+    original_lstm = SpamLSTM(len(original_vocab))
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(original_lstm.parameters())
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    #훈련, 평가
+    o_history = main.train(original_lstm, 
+               original_train, original_valid, 
+                criterion, 
+                optimizer,
+                num_epochs=30, 
+                device=device, 
+                model_name='original')
+
+    o_labels, o_preds = main.evaluate(original_lstm, original_test, 
+                                      device, 
+                                        model_name='original')
 
     #2. 허깅페이스 tokenizer를 거친 데이터셋을 가지고 와서 lstm으로 훈련
+    #2-1. 허깅페이스를 거친 데이터셋 로드
+    hug_data = HugDataset(df, tokenizer, 50)
 
+    hug_train = DataLoader(Subset(hug_data, train_idx), batch_size=32, shuffle=True) 
+    hug_valid = DataLoader(Subset(hug_data, valid_idx), batch_size=32) 
+    hug_test = DataLoader(Subset(hug_data, test_idx), batch_size=32) 
 
 
 
