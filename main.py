@@ -204,6 +204,7 @@ MODEL_MAPS = {
 }
 
 if __name__ == '__main__':
+    #load_data()
 
     #공통 데이터셋 
     train_loader, valid_loader, test_loader, vocab = preprocessing()
