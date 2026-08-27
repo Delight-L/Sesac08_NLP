@@ -53,6 +53,7 @@ class SpamLSTM(nn.Module):
                  hidden_size = 256, 
                  dropout = 0.3, 
                  num_classes = 2):
+        super().__init__()
         self.embedding = nn.Embedding(vocab_size, 
                                       embed_dim,
                                       padding_idx=0)
