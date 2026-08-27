@@ -110,6 +110,34 @@ if __name__ == '__main__':
 
 
 
+    #허깅페이스에서 다운로드받은 토크나이저의 특성 속에 vocab_size가 미리 정의되어 있음
+    hug_lstm = SpamLSTM(tokenizer.vocab_size)
+
+    new_optimizer = optim.Adam(hug_lstm.parameters())
+    h_history = main.train(hug_lstm, 
+                hug_train, hug_valid, 
+                criterion, 
+                new_optimizer,
+                num_epochs=30, 
+                device=device, 
+                model_name='hugging')
+
+    h_labels, h_preds = main.evaluate(hug_lstm, hug_test, 
+                                      device, 
+                                        model_name='hugging')
+
+
+    histories, eval_results, train_models = [], [], {}
+    histories.append(o_history)
+    histories.append(h_history)
+
+    eval_results.append((o_labels, o_preds))
+    eval_results.append((h_labels, h_preds))
+
+    train_models['original'] = original_lstm
+    train_models['hugging'] = hug_lstm      
+
+    plot_comparison(histories, ['original', 'hug'])
 
     # print(f'토크나이저의 어휘 크기 : {tokenizer.vocab_size}')
     # print(f'토크나이저의 최대 입력 길이 : {tokenizer.model_max_length}')
