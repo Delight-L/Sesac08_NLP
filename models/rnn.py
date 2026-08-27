@@ -38,14 +38,33 @@ class SpamRNN(nn.Module):
 #뉴 클래스 만들기! -> LSTM
 class SpamLSTM(nn.Module):
     #https://docs.pytorch.org/docs/2.13/generated/torch.nn.LSTM.html
-    def __init__(self):
-        self.embedding 
-        self.lstm 
-        self.dropout
-        self.fc
+    def __init__(self, vocab_size, 
+                 embed_dim = 128, 
+                 hidden_size = 256, 
+                 dropout = 0.3, 
+                 num_classes = 2):
+        self.embedding = nn.Embedding(vocab_size, 
+                                      embed_dim,
+                                      padding_idx=0)
+        self.lstm = nn.LSTM(input_size = embed_dim,
+                            hidden_size = hidden_size,
+                            num_layers = 5,
+                            batch_first = True,
+                            dropout = dropout)
+        self.dropout = nn.Dropout(dropout)
+        self.fc = nn.Linear(hidden_size, num_classes)
 
     def forward(self, x):
         embedding = self.embedding(x)
+        # [out 설명]
+        # - out: LSTM의 모든 타임스텝(시퀀스 위치)에서의 은닉 상태(Hidden State) 출력값.
+        # - Shape: [Batch Size, Sequence Length, Hidden Dim * Num Directions]
+        #   (예: 단방향 LSTM이고 Hidden Dim=256이라면 [32, 50, 256])
+        # - out[:, 0, :]  -> 첫 번째 단어를 처리한 후의 은닉 상태
+        # - out[:, -1, :] -> 마지막(50번째) 단어를 처리한 후의 은닉 상태 (전체 문장 맥락 응축)
         out, _ = self.lstm(embedding)
         last = out[:, -1, :]
         return self.fc(self.dropout(last))
+
+
+class SpamGRU(nn.Module):
