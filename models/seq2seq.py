@@ -72,7 +72,34 @@ def build_vocab(pairs):
     en_vocab, fr_vocab = Vocab(), Vocab()
 
 
+class Vocab:
+    def __init__(self, max_len):
+        #w(word) i(index) w2i -> 단어를 숫자로 / i2w -> 숫자를 단어로
+        self.w2i = {'<PAD>':0, '<SOS>':1, '<EOS>':2, '<UNK>':3}
+        self.i2w = {v:k for k, v in self.w2i.items()}
+        self.MAX_LEN = max_len
+    #vocab을 추가함
+    def add(self, word):
+        if word not in self.w2i:
+            i = len(self.w2i)
+            self.w2i[word] = len(self.w2i)
+            self.i2w[i] = word
 
+    #토큰 인코드(문자->숫자)
+    def encode(self, tokens):
+        # <SOS> [그, 는, 말하다, 피곤하다고] <EOS>
+        SOS, EOS, UNK = 1, 2, 3
+        ids = [SOS] + [self.w2i.get(t, UNK) for t in tokens] + [EOS]
+
+        #MAX_LEN(최장단어의 길이) 보다 작은 경우 아래처럼 0번 더해줌(패딩)
+        #MAX_LEN = 50이라고 가정, 
+        # 50 - len(ids) +2(sos, eos)
+        ids += [0] * (self.MAX_LEN -len(ids) +2)
+        return ids[:self.MAX_LEN +2]
+
+    #숫자->문자
+    def decode(self):
+        
 
 
 if __name__ == '__main__':
