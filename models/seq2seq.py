@@ -122,6 +122,50 @@ class Vocab:
     def __len__(self): 
         return len(self.w2i)
 
+import torch.nn as nn
+
+#LSTM
+class Encoder(nn.Module):
+    def __init__(self, vocab_size, 
+                 embed_dim=128, 
+                 hidden_size=256,
+                 num_layers = 5 ,
+                 dropout=0.3):
+        super().__init__()
+        #vocab_size, embed_dim
+        self.embedding = nn.Embedding(vocab_size, embed_dim) 
+        self.lstm = nn.LSTM(
+            embed_dim, 
+            hidden_size,
+            num_layers = num_layers,
+            batch_first = True,
+            dropout = dropout
+        )
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        embed = self.embedding(x)
+        dropout = self.dropout(embed)
+        _, (hidden, cell) = self.lstm(dropout)
+        return hidden, cell
+
+        # lstm층을 통과한 결과물은? 
+        # out, _ = self.lstm(embedding)
+        # last = out[:, -1, :]
+        # return self.fc(self.dropout(last))
+
+
+class Decoder(nn.Module):
+    def __init__(self):
+        super().__init__()
+        #임베딩 레이어, lstm레이어, 드롭아웃 동일
+        # + 1개 추가
+
+    def forward(self, token, hidden, cell):
+        #순서대로 어떻게 적용할까?
+
+
+
 if __name__ == '__main__':
     pairs = load_data()
     print(f'페어 길이 : {len(pairs)}, 페어[0] {pairs[0]}')
