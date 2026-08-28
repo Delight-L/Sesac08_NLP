@@ -162,11 +162,51 @@ def embed_random(words : List[str], embed_dim:int=64) -> Optional[np.ndarray]:
         vectors = layer(ids).numpy()
     return vectors
 
-def embed_glove():
-    pass 
+#glove 임베딩 모델에서 내가 사전 정의한 words에 해당하는 벡터 값 추출
+def embed_glove(words:List[str], path:str) -> Optional[np.ndarray]:
 
-def embed_fasttext():
-    pass
+    if not os.path.exists(path):
+        print(f'{path}에 파일이 존재하지 않음')
+
+    glove = {}
+    with open(path, encoding='utf-8') as f:
+        for line in f:
+            parts = line.rstrip().split(' ')
+            glove[parts[0]] = np.array(parts[1:], dtype=np.float32)
+
+    #glove는 전체 단어에 대한 100개 차원의 사전(딕셔너리)
+
+    #예외처리
+    missing = [w for w in words if w not in glove]
+    if missing:
+        print(f'{missing} 가 glove에 없습니다.')
+
+    #100 dimension인것을 알지만.. -> 몇 열로 이루어져 있니?
+    dim = next(iter(glove.values())).shape[0]
+
+    #딕셔너리.get(키, 디폴트)
+    vectors = np.array([glove.get(w, np.zeros(dim)) for w in words])
+    return vectors
+     
+#파일 읽어오기 -> 줄 단위로 자르고 -> 딕셔너리 만들고 -> 단어를 딕셔너리에서 찾고 -> return
+def embed_fasttext(words:List[str], path:str) -> Optional[np.ndarray]:
+
+    if not os.path.exists(path):
+        print(f'{path} 경로가 존재하지 않습니다.')
+
+    fasttext = {}
+    with open(path, encoding='utf-8') as f:
+        n_words, dim = map(int, f.readline().split())
+
+        for i, line in enumerate(f):
+            if i >= 200000:
+                break
+
+            parts = line.rstrip().split(' ')
+            word = parts[0]
+            vec = np.array(parts[1:], dtype=np.float32)
+            if vec.shape[0] == dim:
+                fasttext[word] = vec
 
 def embed_bert():
     pass
