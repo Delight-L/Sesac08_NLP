@@ -21,7 +21,7 @@ def normalize(text, lang='en'):
         text = text.encode('ascii', 'ignore').decode('ascii')
 
     text = text.lower().strip()
-    text = re.sub(r'[.!?]', r' \1', text) #., !, ? 앞을 한 칸 띄우세요
+    text = re.sub(r'([.!?])', r' \1', text) #., !, ? 앞을 한 칸 띄우세요
     text = re.sub(r'[^a-z.!? ]+', ' ', text) #a-z.!?공백 이 아닌 것을 ' '공백으로 변환
     return text.split()
 
@@ -29,7 +29,7 @@ def normalize(text, lang='en'):
 import os, shutil, urllib.request , zipfile
 #인터넷에서 데이터를 다운로드
 def load_data(max_pairs=20000):
-    data_file = os.path.join('data', 'eng-fra.txt')
+    data_file = './data/data/eng-fra.txt'
     if not os.path.exists(data_file):
         #다운로드가 안됐다면? -> 다운로드 하세요!
         os.makedirs('data', exist_ok=True)
@@ -40,6 +40,41 @@ def load_data(max_pairs=20000):
         with zipfile.ZipFile('data/data.zip') as z :
             z.extractall('data')
 
+    pairs = []
+    with open('./data/data/eng-fra.txt', encoding='utf-8') as f:
+        for line in f:
+            parts = line.strip().split('\t')
+            print(parts)
+            if len(parts) < 2 :
+                continue
+
+            en = normalize(parts[0], 'en')
+            fr = normalize(parts[1], 'fr')
+
+            pairs.append((en, fr))
+
+    import random
+    random.shuffle(pairs)
+    pairs = pairs[:max_pairs]
+    return pairs
+
+from collections import Counter
+#Vocab 만들기
+def build_vocab(pairs):
+    en_cnt, fr_cnt = Counter(), Counter()
+
+    for en, fr in pairs:
+        en_cnt.update(en)
+        fr_cnt.update(fr)
+
+    #영어 Vocab
+    #프랑스어 Vocab
+    en_vocab, fr_vocab = Vocab(), Vocab()
+
+
+
+
 
 if __name__ == '__main__':
-    load_data()
+    pairs = load_data()
+    print(f'페어 길이 : {len(pairs)}, 페어[0] {pairs[0]}')
