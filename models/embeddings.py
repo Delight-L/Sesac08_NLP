@@ -262,6 +262,25 @@ def decomposition_3d(vector :np.ndarray) -> np.ndarray:
 
 
 if __name__ == '__main__':
-    g_path = download_glove(dim=100, save_dir='.')
-    f_path = download_fasttext(save_dir='.')
+    # g_path = download_glove(dim=100, save_dir='.')
+    # f_path = download_fasttext(save_dir='.')
 
+    #각 방법의 임베딩을 추출
+    #1. random 임베딩
+    word = ALL_WORDS
+    raw_embeddings = []
+    random_emb = embed_random(word)
+
+    #2. Glove 임베딩
+    glove_emb = embed_glove(word, r'./glove.6B.100d.txt')
+
+    #3. FastText 임베딩
+    ft_emb = embed_fasttext(word, r'C:\Users\jeong\OneDrive\Desktop\Lecture_NLP\models\cc.en.300.vec')
+
+    #4. BERT 임베딩
+    bert_emb = embed_bert(word)
+
+    raw_embeddings.append(random_emb)
+    raw_embeddings.append(glove_emb)
+    raw_embeddings.append(ft_emb)
+    raw_embeddings.append(bert_emb)
