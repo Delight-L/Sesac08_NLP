@@ -62,15 +62,25 @@ from collections import Counter
 #Vocab 만들기
 def build_vocab(pairs):
     en_cnt, fr_cnt = Counter(), Counter()
-
     for en, fr in pairs:
         en_cnt.update(en)
         fr_cnt.update(fr)
-
     #영어 Vocab
     #프랑스어 Vocab
-    en_vocab, fr_vocab = Vocab(), Vocab()
+    #MAX_LEN = 30
+    en_vocab, fr_vocab = Vocab(30), Vocab(30)
 
+    #w-> 단어, f->빈도
+    for w, f in en_cnt.items():
+        if f >= 2:
+            en_vocab.add(w)
+
+    for w, f in fr_cnt.items():
+        if f >= 2:
+            fr_vocab.add(w)
+
+    print(f'영어 어휘 : {len(en_vocab)}, 프랑스어 어휘 {len(fr_vocab)}')
+    return en_vocab, fr_vocab
 
 class Vocab:
     def __init__(self, max_len):
@@ -98,10 +108,22 @@ class Vocab:
         return ids[:self.MAX_LEN +2]
 
     #숫자->문자
-    def decode(self):
-        
+    def decode(self, ids):
+        out = [] #id가 변환되어 쌓일 문자열 리스트
 
+        for i in ids:
+            w = self.i2w.get(i, '<UNK>')
+            # <sos> 나는 이렇게 말했다 <pad> <pad> <eos>
+            if w in ('<PAD>', '<SOS>', '<EOS>'):
+                continue #append하지 말고 넘어가라.
+            out.append(w)
+        return out
+
+    def __len__(self): 
+        return len(self.w2i)
 
 if __name__ == '__main__':
     pairs = load_data()
     print(f'페어 길이 : {len(pairs)}, 페어[0] {pairs[0]}')
+
+    en_vocab, fr_vocab = build_vocab(pairs)
