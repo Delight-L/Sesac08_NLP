@@ -208,9 +208,57 @@ def embed_fasttext(words:List[str], path:str) -> Optional[np.ndarray]:
             if vec.shape[0] == dim:
                 fasttext[word] = vec
 
-def embed_bert():
-    pass
+    missing = [w for w in words if w not in fasttext]
+    if missing:
+        print(f'{missing}이 fasttext 안에 존재하지 않음')
+    vectors = np.array([fasttext.get(w, np.zeros(dim)) for w in words])
+    return vectors
 
+def embed_bert(words:List[str]) -> Optional[np.ndarray] :
+
+    from transformers import AutoTokenizer, BertModel 
+
+    #Glove, FastText 의 파일 읽어 가져오기랑 동일
+    tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+    bert = BertModel.from_pretrained('bert-base-uncased')
+    word_embed = bert.embeddings.word_embeddings
+
+    #words에 맞는 벡터를 임베딩 뭉치에서 추출
+    vectors = []
+    for word in words:
+        token_ids = tokenizer.encode(word, add_special_tokens=False)
+
+        #버트 모델이 가지고 있지 않은 단어 뭉치
+        if not token_ids:
+            #np.zeros -> 내가 알지 못하는 단어의 벡터는 임베딩 모델 존재 X
+            #빈 값(NULL) 만들지 않기 위해 임시로 0값으로 채워진 값을 return
+            #0값으로 얼마나 채워야 하지 -> 내가 쓰는 임베딩 모델의 차원 수
+            vectors.append(np.zeros(768))
+            continue 
+
+        with torch.no_grad():
+            ids_tensor = torch.tensor(token_ids)
+            embed = word_embed(ids_tensor).mean(0).numpy()
+        vectors.append(embed)
+    return np.array(vectors)
+
+def decomposition_3d(vector :np.ndarray) -> np.ndarray:
+    #PCA를 이용한 3차원으로 차원축소
+    from sklearn.decomposition import PCA
+
+    #정규화 -> 각 vector별로 데이터의 범위가 다를 수 있다
+    #norm -> 각 벡터를 줄별로(axis=1) 계산해서 각 단어 줄에 대한 L2 norm 구하기
+    norm = np.linalg.norm(vector, axis=1, keepdims=True) + 1e-9
+    vector = vector/norm
+
+    pca = PCA(n_components=3)
+    result = pca.fit_transform(vector)
+
+    #3차원으로 잘 변환했는가? 
+    explain = pca.explained_variance_ * 100
+    print(f'PCA 후 이 모델을 {explain.sum():.2f}% 설명 가능함')
+
+    return result
 
 
 if __name__ == '__main__':
