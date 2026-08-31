@@ -27,6 +27,12 @@ def normalize(text, lang='en'):
 
 
 import os, shutil, urllib.request , zipfile
+from collections import Counter
+import torch
+import random
+
+import torch.nn as nn
+
 #인터넷에서 데이터를 다운로드
 def load_data(max_pairs=20000):
     data_file = './data/data/eng-fra.txt'
@@ -58,7 +64,7 @@ def load_data(max_pairs=20000):
     pairs = pairs[:max_pairs]
     return pairs
 
-from collections import Counter
+
 #Vocab 만들기
 def build_vocab(pairs):
     en_cnt, fr_cnt = Counter(), Counter()
@@ -122,8 +128,6 @@ class Vocab:
     def __len__(self): 
         return len(self.w2i)
 
-import torch.nn as nn
-
 #LSTM
 class Encoder(nn.Module):
     def __init__(self, vocab_size, 
@@ -154,7 +158,6 @@ class Encoder(nn.Module):
         # last = out[:, -1, :]
         # return self.fc(self.dropout(last))
 
-
 class Decoder(nn.Module):
     def __init__(self, vocab_size, embed_dim, hidden_size, 
                  num_layers, dropout, PAD_IDX):
@@ -182,8 +185,6 @@ class Decoder(nn.Module):
         word = self.fc(out.squeeze(1))
         return word, hidden, cell
 
-import torch
-import random 
 class seq2seq(nn.Module):
     def __init__(self, encoder, decoder, trg_vocab_size, device='cuda'):
         super().__init__()
@@ -192,6 +193,7 @@ class seq2seq(nn.Module):
         self.trg_vocab_size = trg_vocab_size
         self.device = device
 
+    #seq2seq의 훈련
     def forward(self, src, trg, ratio):
         B, trg_len = trg.size()
 
@@ -229,12 +231,23 @@ class seq2seq(nn.Module):
 
         return result
 
-
-
-
+PAD_IDX, SOS_IDX, EOS_IDX, UNK_IDX = 0, 1, 2, 3
 
 if __name__ == '__main__':
     pairs = load_data()
     print(f'페어 길이 : {len(pairs)}, 페어[0] {pairs[0]}')
 
     en_vocab, fr_vocab = build_vocab(pairs)
+
+    #클래스 정의 -> vocab, encoder, decoder, seq2seq 
+    #훈련->추론 => 데이터준비, 데이터로더, 인코더/디코더/모델(생성), train, 추론(pred)
+
+    #1.커스텀데이터셋으로 en_vocab, fr_vocab의 데이터셋 제작
+
+    #2. 데이터 로더
+
+    #3. 훈련에 필요한 인코더/디코더/모델 객체 생성
+
+    #4.train 시작
+
+    #5.실제 번역(추론)
