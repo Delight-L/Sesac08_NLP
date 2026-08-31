@@ -32,6 +32,7 @@ import torch
 import random
 
 import torch.nn as nn
+from torch.utils.data import Dataset, DataLoader, random_split
 
 #인터넷에서 데이터를 다운로드
 def load_data(max_pairs=20000):
@@ -233,6 +234,18 @@ class seq2seq(nn.Module):
 
 PAD_IDX, SOS_IDX, EOS_IDX, UNK_IDX = 0, 1, 2, 3
 
+
+class TranslationDataset(Dataset):
+    def __init__(self):
+        pass
+
+    def __len__(self):
+        pass
+
+    def __getitem__(self, index):
+        pass
+
+
 if __name__ == '__main__':
     pairs = load_data()
     print(f'페어 길이 : {len(pairs)}, 페어[0] {pairs[0]}')
@@ -243,11 +256,40 @@ if __name__ == '__main__':
     #훈련->추론 => 데이터준비, 데이터로더, 인코더/디코더/모델(생성), train, 추론(pred)
 
     #1.커스텀데이터셋으로 en_vocab, fr_vocab의 데이터셋 제작
+    dataset = TranslationDataset(pairs, en_vocab, fr_vocab)
+
+    n = len(dataset)
+    n_train = int(n * 0.8)
+    n_valid = int(n * 0.1)
+    n_test = int(n*0.1)
+
+    train_set, valid_set, test_set = random_split(dataset, 
+                                                  [n_train, n_valid, n_test])
 
     #2. 데이터 로더
+    train_loader = DataLoader(train_set, batch_size=16, shuffle=True)
+    valid_loader = DataLoader(valid_set, batch_size=16)
+    test_loader = DataLoader(test_set, batch_size=16)
 
     #3. 훈련에 필요한 인코더/디코더/모델 객체 생성
+    #주의할 점!! hidden을 공유하므로 HIDDEN_SIZE와 NUM_LAYERS는 같은 숫자여야 함.
+    EMBED_DIM = 256
+    HIDDEN_SIZE = 256
+    NUM_LAYERS = 5
+    DROPOUT = 0.2
+
+    #영->프 / 프->영 en_vocab, fr_vocab
+    encoder = Encoder(len(en_vocab))
+    decoder = Decoder(len(fr_vocab), 
+                    embed_dim = EMBED_DIM, 
+                    hidden_size = HIDDEN_SIZE, 
+                    num_layers = NUM_LAYERS, 
+                    dropout = DROPOUT, 
+                    PAD_IDX= PAD_IDX)
+    model = seq2seq(encoder, decoder, len(fr_vocab))
 
     #4.train 시작
+    #train()
 
     #5.실제 번역(추론)
+    #model.translate()
