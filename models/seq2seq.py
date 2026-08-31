@@ -235,15 +235,66 @@ class seq2seq(nn.Module):
 PAD_IDX, SOS_IDX, EOS_IDX, UNK_IDX = 0, 1, 2, 3
 
 
+# 영어-프랑스어 쌍 (영어, 프랑스어)
 class TranslationDataset(Dataset):
-    def __init__(self):
-        pass
+    def __init__(self, pairs, src_vocab, trg_vocab):
+        self.data = [
+            (torch.tensor(src_vocab.encode(en), dtype=torch.long), 
+             torch.tensor(trg_vocab.encode(fr), dtype=torch.long)) 
+                    for en, fr in pairs
+        ]
 
     def __len__(self):
-        pass
+        return len(self.data)
 
     def __getitem__(self, index):
-        pass
+        return self.data[index]
+
+def run_epoch(model, loader, optimizer, criterion, device, train=True, tf=0.5):
+    model.train() if train else model.eval()
+    total_loss = 0
+
+    ctx = torch.enable_grad() if train else torch.no_grad()
+    with ctx:
+        for src, trg in loader:
+            src, trg = src.to(device), trg.to(device)
+            out = model(src, trg, ratio=tf if train else 0.0)
+            loss = criterion(out[:, 1:].reshape(-1, out.size(-1)),
+                             trg[:, 1:].reshape(-1))
+            if train:
+                optimizer.zero_grad(); loss.backward()
+                nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                optimizer.step()
+            total_loss += loss.item()
+
+    return total_loss / len(loader)
+
+#arg_parse() 
+import time
+def train_model(model, train_loader, valid_loader, lr, epochs, device):
+    criterion = nn.CrossEntropyLoss(ignore_index=PAD_IDX)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, factor=0.5)
+    history   = {'train': [], 'valid': []}
+    best_loss = float('inf')
+
+    for epoch in range(epochs):
+        tf  = max(0.3, 0.9 - epoch * 0.06)   # 점진적으로 teacher forcing 비율 감소
+        t0  = time.time()
+        tl  = run_epoch(model, train_loader, optimizer, criterion, device, train=True,  tf=tf)
+        vl  = run_epoch(model, valid_loader, optimizer, criterion, device, train=False)
+        scheduler.step(vl)
+        history['train'].append(tl); history['valid'].append(vl)
+
+        if vl < best_loss:
+            best_loss = vl
+            torch.save(model.state_dict(), 'seq2seq_basic_best.pt')
+
+        print(f'Epoch {epoch+1:2d}/{epochs} | '
+              f'train {tl:.4f} | valid {vl:.4f} | tf {tf:.2f} | {time.time()-t0:.1f}s')
+
+    return history
+
 
 
 if __name__ == '__main__':
@@ -286,10 +337,18 @@ if __name__ == '__main__':
                     num_layers = NUM_LAYERS, 
                     dropout = DROPOUT, 
                     PAD_IDX= PAD_IDX)
-    model = seq2seq(encoder, decoder, len(fr_vocab))
+
+    #디바이스셋업먼저
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    model = seq2seq(encoder, decoder, len(fr_vocab)).to(device)
 
     #4.train 시작
-    #train()
+    history = train_model(model, 
+                          train_loader, 
+                          valid_loader,
+                          0.01,
+                          1,
+                          device=device)
 
     #5.실제 번역(추론)
     #model.translate()
