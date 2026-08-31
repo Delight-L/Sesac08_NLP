@@ -156,13 +156,80 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self):
+    def __init__(self, vocab_size, embed_dim, hidden_size, 
+                 num_layers, dropout, PAD_IDX):
         super().__init__()
-        #임베딩 레이어, lstm레이어, 드롭아웃 동일
-        # + 1개 추가
+        self.embedding = nn.Embedding(vocab_size, embed_dim, 
+                                      padding_idx=PAD_IDX)
+        self.ltsm = nn.LSTM(embed_dim, hidden_size,
+                            num_layers,
+                            batch_first=True,
+                            dropout=dropout)
+        self.dropout = nn.Dropout(dropout)
 
+        #디코더 -> 결과 출력
+        self.fc = nn.Linear(hidden_size, vocab_size)
+
+    #token  ->(번역할 X)
+    #hidden ->(from encoder)
+    #cell   ->(from encoder)
     def forward(self, token, hidden, cell):
-        #순서대로 어떻게 적용할까?
+        #Token => (B) -> 언스퀴즈 (B, 1) -> 임베딩 거친 후 (B, 1, E)
+        embed = self.embedding(token.unsqueeze(1))
+        #(hidden, cell) 은 인코더의 출력물, 전체 데이터에 대한 정보 기억
+        #(hidden, cell)은 과거의 기억(hidden state) -> 앞으로 나올 단어 산출
+        out, (hidden, cell) = self.lstm(self.dropout(embed), (hidden, cell))
+        word = self.fc(out.squeeze(1))
+        return word, hidden, cell
+
+import torch
+import random 
+class seq2seq(nn.Module):
+    def __init__(self, encoder, decoder, trg_vocab_size, device='cuda'):
+        super().__init__()
+        self.encoder = encoder 
+        self.decoder = decoder
+        self.trg_vocab_size = trg_vocab_size
+        self.device = device
+
+    def forward(self, src, trg, ratio):
+        B, trg_len = trg.size()
+
+        outputs = torch.zeros(B, trg_len, self.trg_vocab_size, device=self.device)
+
+        hidden, cell = self.encoder(src)
+        token = trg[:, 0]
+
+        for t in range(trg_len):
+            logit, hidden, cell = self.decoder(token, hidden, cell)
+            outputs[:, t] = logit
+            token = trg[:, t] if random.random() < ratio else logit.argmax(1)
+
+        return outputs
+
+
+
+    #데코레이터! @ with~ 이번에 새로 정의하는 함수가 다른 함수의 기능을 이어받았으면 좋겠다!
+    #with torch.no_grad():
+    @torch.no_grad()
+    def translate(self, src, max_len):
+        self.eval()
+        hidden, cell = self.encoder(src)
+
+        #0(SOS)으로 시작하는 빈 텐서 만들어놓기
+        token = torch.tensor([SOS_IDX], device=self.device)
+        result = []
+
+        for _ in range(max_len):
+            logit, hidden, cell = self.decoder(token, hidden, cell)
+            temp = logit.argmax(1) #temp->전체 vocab중 가장높은 확률을 가진 vocab 1개
+            if temp.item() == EOS_IDX :
+                break
+            result.append(temp.item())
+
+        return result
+
+
 
 
 
